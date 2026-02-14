@@ -215,3 +215,12 @@ iframe {
   color: white;
   font-weight: bold;
 }
+section, .profile-card {
+    text-align: center;
+}
+.product-card {
+    text-align: left;
+}
+.product-card {
+    text-align: center;
+}

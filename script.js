@@ -107,8 +107,61 @@ window.closeProfile = function () {
   document.getElementById("profilePanel").style.display = "none";
 };
 
-window.viewOrders = function () {
-  alert("Orders page coming next step 😉");
+window.viewOrders = async function () {
+
+  const user = auth.currentUser;
+
+  const q = query(
+    collection(db, "orders"),
+    where("userId", "==", user.uid)
+  );
+
+  const snapshot = await getDocs(q);
+
+  let output = "<h3>My Orders</h3>";
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    output += `
+      <div style="border:1px solid #ddd; padding:8px; margin-top:8px;">
+        <strong>${data.orderId}</strong><br>
+        Status: ${data.status}
+      </div>
+    `;
+  });
+
+  document.getElementById("profileContent").innerHTML = output;
+};
+
+let cart = [];
+
+window.addToCart = function (name, price) {
+  cart.push({ name, price });
+  alert(name + " added to cart");
+};
+import { collection, addDoc, getDocs, query, where } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+window.placeOrder = async function () {
+
+  if (cart.length === 0) {
+    alert("Cart is empty");
+    return;
+  }
+
+  const user = auth.currentUser;
+  const orderId = "ORD-" + Date.now();
+
+  await addDoc(collection(db, "orders"), {
+    orderId: orderId,
+    userId: user.uid,
+    items: cart,
+    status: "Pending",
+    createdAt: new Date()
+  });
+
+  cart = [];
+  alert("Order placed! ID: " + orderId);
 };
 
 
