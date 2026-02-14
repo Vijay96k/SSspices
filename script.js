@@ -136,9 +136,18 @@ window.viewOrders = async function () {
 let cart = [];
 
 window.addToCart = function (name, price) {
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("Please login first to add products.");
+    return;
+  }
+
   cart.push({ name, price });
   alert(name + " added to cart");
 };
+
 import { collection, addDoc, getDocs, query, where } 
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -162,7 +171,41 @@ window.placeOrder = async function () {
 
   cart = [];
   alert("Order placed! ID: " + orderId);
+  
+  closeProfile();
 };
+window.viewCart = function () {
 
+  if (cart.length === 0) {
+    document.getElementById("profileContent").innerHTML =
+      "<h3>Your cart is empty</h3>";
+    return;
+  }
 
+  let output = "<h3>Your Cart</h3>";
 
+  cart.forEach((item, index) => {
+    output += `
+      <div style="border:1px solid #ddd; padding:8px; margin-top:8px;">
+        ${item.name} - ₹${item.price}
+        <button onclick="removeFromCart(${index})" 
+        style="margin-top:5px;background:red;color:white;border:none;padding:5px;border-radius:5px;">
+          Remove
+        </button>
+      </div>
+    `;
+  });
+
+  output += `
+    <button onclick="placeOrder()" 
+    style="margin-top:15px;background:green;color:white;border:none;padding:10px;border-radius:8px;width:100%;">
+      Confirm Order
+    </button>
+  `;
+
+  document.getElementById("profileContent").innerHTML = output;
+};
+window.removeFromCart = function (index) {
+  cart.splice(index, 1);
+  viewCart();
+};
