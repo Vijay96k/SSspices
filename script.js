@@ -99,6 +99,7 @@ window.openProfile = function () {
       <p>${user.email}</p>
       <button onclick="viewOrders()">My Orders</button>
       <button onclick="logout()">Logout</button>
+      <button onclick="viewCart()">View Cart</button>
     `;
   }
 };
