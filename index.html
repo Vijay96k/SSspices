@@ -18,7 +18,7 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
         <h1>Shree Shankar Food Products</h1>
         <p class="category">All Types</p>
         <p class="category">Pickel | Masale</p>
-        <button onclick="login()">Login with Google</button>
+        
 
 
         <div class="quick-buttons">
@@ -27,10 +27,10 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
    class="btn whatsapp" target="_blank">
    WhatsApp
 </a>
-
-       <!--<a href="#map" class="btn location">Location</a>
+ <button class="btn location" onclick="openProfile()">Profile</button>
+     
         </div>
-    </div>-->     
+    </div>  
 
     <section>
         <h2>About Us</h2>
@@ -141,6 +141,20 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
    WhatsApp
 </a>
 </div>
+
+
+<!-- Profile Panel -->
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-box">
+    <span class="close-profile" onclick="closeProfile()">✖</span>
+
+    <div id="profileContent">
+      <!-- Dynamic content will load here -->
+    </div>
+
+  </div>
+</div>
+
 <script type="module" src="script.js"></script>
 </body>
 </html>

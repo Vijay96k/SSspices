@@ -69,5 +69,47 @@ onAuthStateChanged(auth, (user) => {
     console.log("Logged in:", user.email);
   }
 });
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+window.logout = async function () {
+  await signOut(auth);
+  alert("Logged out successfully");
+  location.reload();
+};
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("Logged in:", user.email);
+    document.querySelector("button[onclick='login()']").style.display = "none";
+  }
+});
+window.openProfile = function () {
+  document.getElementById("profilePanel").style.display = "flex";
+
+  const user = auth.currentUser;
+  const container = document.getElementById("profileContent");
+
+  if (!user) {
+    container.innerHTML = `
+      <h3>Please Login</h3>
+      <button onclick="login()">Login with Google</button>
+    `;
+  } else {
+    container.innerHTML = `
+      <h3>${user.displayName}</h3>
+      <p>${user.email}</p>
+      <button onclick="viewOrders()">My Orders</button>
+      <button onclick="logout()">Logout</button>
+    `;
+  }
+};
+
+window.closeProfile = function () {
+  document.getElementById("profilePanel").style.display = "none";
+};
+
+window.viewOrders = function () {
+  alert("Orders page coming next step 😉");
+};
+
 
 

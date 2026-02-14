@@ -179,3 +179,39 @@ iframe {
     margin: 15px 20px;
     border-radius: 2px;
 }
+.profile-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+
+.profile-box {
+  width: 90%;
+  max-width: 350px;
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.close-profile {
+  float: right;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.profile-box button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #2a5298;
+  color: white;
+  font-weight: bold;
+}
