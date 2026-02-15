@@ -283,3 +283,23 @@ document.addEventListener("DOMContentLoaded", () => {
     profileBtn.addEventListener("click", openProfile);
   }
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const helpBubble = document.getElementById("helpBubble");
+  const helpModal = document.getElementById("helpModal");
+  const closeHelp = document.getElementById("closeHelp");
+
+  if (helpBubble) {
+    helpBubble.addEventListener("click", () => {
+      helpModal.style.display = "flex";
+    });
+  }
+
+  if (closeHelp) {
+    closeHelp.addEventListener("click", () => {
+      helpModal.style.display = "none";
+    });
+  }
+
+});
