@@ -25,7 +25,7 @@ import {
 
 // ================== FIREBASE INIT ==================
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyDXQB93127WDsAuWaFL8XFRycAXftKED0w",
   authDomain: "ssspices-b4ea4.firebaseapp.com",
   projectId: "ssspices-b4ea4"
 };
