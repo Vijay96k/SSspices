@@ -178,18 +178,6 @@ async function viewCart() {
   `;
 
   container.innerHTML = output;
-
-  await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
-  method: "POST",
-  body: JSON.stringify({
-    orderId: orderId,
-    name: currentUser.displayName,
-    email: currentUser.email,
-    mobile: mobile,
-    total: total
-  })
-});
-
 }
 
 
@@ -230,6 +218,7 @@ window.placeOrder = async function () {
 
   const orderId = "ORD-" + Date.now();
 
+  // 🔹 Save to Firestore
   await addDoc(collection(db, "orders"), {
     orderId,
     userId: currentUser.uid,
@@ -241,6 +230,32 @@ window.placeOrder = async function () {
     createdAt: new Date()
   });
 
+  // 🔹 SEND TO GOOGLE SHEET
+  try {
+    await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        orderId: orderId,
+        customerName: currentUser.displayName,
+        email: currentUser.email,
+        mobile: mobile,
+        products: items.map(i => i.name).join(", "),
+        prices: items.map(i => i.price).join(", "),
+        total: total,
+        status: "Pending"
+      })
+    });
+
+    console.log("Sheet updated successfully");
+
+  } catch (error) {
+    console.error("Sheet error:", error);
+  }
+
+  // 🔹 Clear cart
   for (const docSnap of cartSnapshot.docs) {
     await deleteDoc(doc(db, "users", currentUser.uid, "cart", docSnap.id));
   }
@@ -314,17 +329,4 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-});
-
-await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
-  method: "POST",
-  body: JSON.stringify({
-    orderId: orderId,
-    email: currentUser.email,
-    mobile: mobile,
-    product: items.map(i => i.name).join(", "),
-    price: items.map(i => i.price).join(", "),
-    total: total,
-    status: "Pending"
-  })
 });
