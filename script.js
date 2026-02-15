@@ -231,7 +231,7 @@ window.placeOrder = async function () {
   });
 
   // 🔹 SEND TO GOOGLE SHEET
-   await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
+   await fetch("https://script.google.com/macros/s/AKfycbyMSUeVIQWRHhChI_f9jPeBDR49e-WlBEk3-gyhNrU7oLZnCVgnYfB1-vZYKCDBSMHqrg/exec", {
   method: "POST",
   body: JSON.stringify({
     orderId: orderId,
