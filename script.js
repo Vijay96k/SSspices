@@ -331,23 +331,37 @@ window.viewOrders = async function () {
 
 
 // ================== ORDER DETAILS ==================
-window.openProfile = function () {
+function openProfile() {
   document.getElementById("profilePanel").style.display = "flex";
 
   if (!currentUser) {
     document.getElementById("profileContent").innerHTML = `
       <h3>Please Login</h3>
-      <button onclick="login()">Login with Google</button>
+      <button id="loginBtn">Login with Google</button>
     `;
+
+    document.getElementById("loginBtn").addEventListener("click", login);
     return;
   }
 
   document.getElementById("profileContent").innerHTML = `
     <h3>${currentUser.displayName}</h3>
     <p>${currentUser.email}</p>
-    <button onclick="viewCart()">View Cart</button>
-    <button onclick="viewOrders()">My Orders</button>
-    <button onclick="logout()">Logout</button>
+    <button id="cartBtn">View Cart</button>
+    <button id="ordersBtn">My Orders</button>
+    <button id="logoutBtn">Logout</button>
   `;
-};
+
+  document.getElementById("cartBtn").addEventListener("click", viewCart);
+  document.getElementById("ordersBtn").addEventListener("click", viewOrders);
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const profileBtn = document.getElementById("profileBtn");
+
+  if (profileBtn) {
+    profileBtn.addEventListener("click", openProfile);
+  }
+});
 
