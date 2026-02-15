@@ -13,6 +13,7 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
 
     <div class="header"></div>
 
+    <!-- Top Card -->
     <div class="profile-card">
         <h1>Admin Dashboard</h1>
         <p class="category">Manage Website</p>
@@ -21,14 +22,22 @@ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable
             <button class="btn location" id="usersBtn">User List</button>
             <button class="btn location" id="ordersBtn">Total Orders</button>
             <button class="btn location" id="salesBtn">Total Sales</button>
+        </div>
+
+        <div style="margin-top:15px;">
             <button class="btn call" id="logoutBtn">Logout</button>
         </div>
     </div>
 
+    <!-- Dynamic Admin Section -->
     <section>
         <h2>Admin Panel</h2>
+
+        <!-- IMPORTANT: this ID must match admin.js -->
         <div class="product-grid" id="adminContent">
-            <!-- Dynamic content will load here -->
+            <div class="product-card">
+                <p>Select an option above to manage the website.</p>
+            </div>
         </div>
     </section>
 
