@@ -231,29 +231,19 @@ window.placeOrder = async function () {
   });
 
   // 🔹 SEND TO GOOGLE SHEET
-  try {
-    await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        orderId: orderId,
-        customerName: currentUser.displayName,
-        email: currentUser.email,
-        mobile: mobile,
-        products: items.map(i => i.name).join(", "),
-        prices: items.map(i => i.price).join(", "),
-        total: total,
-        status: "Pending"
-      })
-    });
+   await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
+  method: "POST",
+  body: JSON.stringify({
+    orderId: orderId,
+    email: currentUser.email,
+    mobile: mobile,
+    products: items.map(i => i.name).join(", "),
+    prices: items.map(i => i.price).join(", "),
+    total: total,
+    status: "Pending"
+  })
+});
 
-    console.log("Sheet updated successfully");
-
-  } catch (error) {
-    console.error("Sheet error:", error);
-  }
 
   // 🔹 Clear cart
   for (const docSnap of cartSnapshot.docs) {
