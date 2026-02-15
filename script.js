@@ -178,6 +178,18 @@ async function viewCart() {
   `;
 
   container.innerHTML = output;
+
+  await fetch("https://script.google.com/macros/s/AKfycbz1E75XwMnd_8w0HI6W3dlIGhRAarK6duY_J51qrdtkgYNgdI39waOlOzv6IrWYvsIZ6w/exec", {
+  method: "POST",
+  body: JSON.stringify({
+    orderId: orderId,
+    name: currentUser.displayName,
+    email: currentUser.email,
+    mobile: mobile,
+    total: total
+  })
+});
+
 }
 
 
