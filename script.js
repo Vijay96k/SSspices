@@ -124,12 +124,33 @@ window.viewOrders = async function () {
   snapshot.forEach(doc => {
     const data = doc.data();
     output += `
-      <div style="border:1px solid #ddd; padding:8px; margin-top:8px;">
-        <strong>${data.orderId}</strong><br>
-        Status: ${data.status}
-      </div>
-    `;
+  <div onclick="viewOrderDetails('${doc.id}')"
+    style="border:1px solid #ddd; padding:10px; margin-top:8px; cursor:pointer;">
+    <strong>${data.orderId}</strong><br>
+    Status: ${data.status}
+  </div>
+`;
+
   });
+
+  let badgeColor = {
+  Pending: "orange",
+  Confirmed: "blue",
+  Shipped: "purple",
+  Delivered: "green",
+  Cancelled: "red"
+}[data.status] || "gray";
+
+output += `
+  <div style="border:1px solid #ddd; padding:10px; margin-top:8px;">
+    <strong>${data.orderId}</strong><br>
+    <span style="color:white;background:${badgeColor};
+    padding:4px 8px;border-radius:12px;font-size:12px;">
+      ${data.status}
+    </span>
+  </div>
+`;
+
 
   document.getElementById("profileContent").innerHTML = output;
 };
@@ -183,6 +204,11 @@ window.viewCart = function () {
     return;
   }
 
+  let total = cart.reduce((sum, item) => sum + item.price, 0);
+
+output += `<h4 style="margin-top:10px;">Total: ₹${total}</h4>`;
+
+
   let output = "<h3>Your Cart</h3>";
 
   cart.forEach((item, index) => {
@@ -198,15 +224,73 @@ window.viewCart = function () {
   });
 
   output += `
-    <button onclick="placeOrder()" 
+  <div style="margin-top:15px;">
+    <input type="tel" id="mobileNumber" 
+      placeholder="Enter mobile number" 
+      style="width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;">
+  </div>
+
+  <button onclick="placeOrder()" 
     style="margin-top:15px;background:green;color:white;border:none;padding:10px;border-radius:8px;width:100%;">
-      Confirm Order
-    </button>
-  `;
+    Confirm Order
+  </button>
+`;
+
 
   document.getElementById("profileContent").innerHTML = output;
 };
 window.removeFromCart = function (index) {
   cart.splice(index, 1);
   viewCart();
+};
+window.placeOrder = async function () {
+
+  const mobile = document.getElementById("mobileNumber")?.value;
+
+  if (!mobile || mobile.length < 10) {
+    alert("Please enter valid mobile number");
+    return;
+  }
+
+  if (cart.length === 0) {
+    alert("Cart is empty");
+    return;
+  }
+
+  const user = auth.currentUser;
+  const orderId = "ORD-" + Date.now();
+
+  const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+  await addDoc(collection(db, "orders"), {
+    orderId: orderId,
+    userId: user.uid,
+    userEmail: user.email,
+    mobile: mobile,
+    items: cart,
+    totalAmount: total,
+    status: "Pending",
+    createdAt: new Date()
+  });
+
+  cart = [];
+  alert("Order Confirmed! ID: " + orderId);
+  closeProfile();
+};
+window.viewOrderDetails = async function (docId) {
+
+  const docSnap = await getDoc(doc(db, "orders", docId));
+  const data = docSnap.data();
+
+  let output = `<h3>${data.orderId}</h3>`;
+
+  data.items.forEach(item => {
+    output += `<p>${item.name} - ₹${item.price}</p>`;
+  });
+
+  output += `<h4>Total: ₹${data.totalAmount}</h4>`;
+  output += `<p>Status: ${data.status}</p>`;
+  output += `<button onclick="viewOrders()">Back</button>`;
+
+  document.getElementById("profileContent").innerHTML = output;
 };
