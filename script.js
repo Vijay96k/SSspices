@@ -49,12 +49,26 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   authReady = true;
 
+  const container = document.getElementById("profileContent");
+
+  if (!container) return;
+
   if (user) {
-    console.log("Logged in:", user.email);
+    container.innerHTML = `
+      <h3>${user.displayName}</h3>
+      <p>${user.email}</p>
+      <button onclick="viewCart()">View Cart</button>
+      <button onclick="viewOrders()">My Orders</button>
+      <button onclick="logout()">Logout</button>
+    `;
   } else {
-    console.log("Not logged in");
+    container.innerHTML = `
+      <h3>Please Login</h3>
+      <button onclick="login()">Login with Google</button>
+    `;
   }
 });
+
 
 
 // ================== LOGIN ==================
@@ -99,36 +113,47 @@ window.logout = async function () {
 
 
 // ================== PROFILE PANEL ==================
-window.openProfile = function () {
+window.viewOrders = async function () {
 
-  document.getElementById("profilePanel").style.display = "flex";
+  if (!currentUser) return;
+
   const container = document.getElementById("profileContent");
 
-  if (!authReady) {
-    container.innerHTML = "<p>Loading...</p>";
-    return;
-  }
+  const q = query(
+    collection(db, "orders"),
+    where("userId", "==", currentUser.uid)
+  );
 
-  if (!currentUser) {
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
     container.innerHTML = `
-      <h3>Please Login</h3>
-      <button onclick="login()">Login with Google</button>
+      <h3>No Orders Found</h3>
+      <p>Please order something first.</p>
+      <button onclick="openProfile()">Back</button>
     `;
     return;
   }
 
-  container.innerHTML = `
-    <h3>${currentUser.displayName}</h3>
-    <p>${currentUser.email}</p>
-    <button onclick="viewCart()">View Cart</button>
-    <button onclick="viewOrders()">My Orders</button>
-    <button onclick="logout()">Logout</button>
-  `;
+  let output = "<h3>My Orders</h3>";
+
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+
+    output += `
+      <div onclick="viewOrderDetails('${docSnap.id}')"
+      style="border:1px solid #ddd;padding:10px;margin-top:8px;cursor:pointer;">
+        <strong>${data.orderId}</strong><br>
+        Status: ${data.status}
+      </div>
+    `;
+  });
+
+  output += `<button onclick="openProfile()">Back</button>`;
+
+  container.innerHTML = output;
 };
 
-window.closeProfile = function () {
-  document.getElementById("profilePanel").style.display = "none";
-};
 
 
 // ================== ADD TO CART ==================
@@ -161,7 +186,11 @@ window.viewCart = async function () {
   );
 
   if (snapshot.empty) {
-    container.innerHTML = "<h3>Your cart is empty</h3>";
+    container.innerHTML = `
+      <h3>Your cart is empty</h3>
+      <p>Add items first.</p>
+      <button onclick="openProfile()">Back</button>
+    `;
     return;
   }
 
@@ -192,10 +221,15 @@ window.viewCart = async function () {
     <button onclick="placeOrder()"
     style="margin-top:15px;background:green;color:white;border:none;padding:10px;border-radius:8px;width:100%;">
     Confirm Order</button>
+
+    <button onclick="openProfile()"
+    style="margin-top:10px;background:gray;color:white;border:none;padding:8px;border-radius:8px;width:100%;">
+    Back</button>
   `;
 
   container.innerHTML = output;
 };
+
 
 
 // ================== REMOVE FROM CART ==================
