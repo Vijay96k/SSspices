@@ -2,6 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -31,33 +33,57 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const adminEmail = "ssspicesandmore@gmail.com";
+
+// ================== ALLOWED ADMINS ==================
+const allowedAdmins = [
+  "ssspicesandmore@gmail.com",
+  "vjyadav002@gmail.com"
+];
 
 
-// ================== ADMIN AUTH CHECK ==================
-onAuthStateChanged(auth, (user) => {
+// ================== AUTH STATE ==================
+onAuthStateChanged(auth, async (user) => {
+
+  const container = document.getElementById("ordersContainer");
 
   if (!user) {
-    alert("Login required");
+    container.innerHTML = `
+      <h3>Admin Login Required</h3>
+      <button id="adminLoginBtn">Login with Google</button>
+    `;
+
+    document
+      .getElementById("adminLoginBtn")
+      .addEventListener("click", adminLogin);
+
+    return;
+  }
+
+  // Check verified email
+  if (!user.emailVerified || !allowedAdmins.includes(user.email)) {
+    alert("Access Denied");
+    await signOut(auth);
     window.location.href = "index.html";
     return;
   }
 
-  if (user.email !== adminEmail) {
-    alert("Access denied. Admin only.");
-    window.location.href = "index.html";
-    return;
-  }
-
+  // If admin verified
   loadOrders();
 });
+
+
+// ================== ADMIN LOGIN ==================
+async function adminLogin() {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+}
 
 
 // ================== LOAD ALL ORDERS ==================
 async function loadOrders() {
 
   const container = document.getElementById("ordersContainer");
-  container.innerHTML = "Loading...";
+  container.innerHTML = "Loading orders...";
 
   const snapshot = await getDocs(collection(db, "orders"));
 
@@ -66,7 +92,7 @@ async function loadOrders() {
     return;
   }
 
-  let output = "";
+  let output = `<h2>All Orders</h2>`;
 
   snapshot.forEach((docSnap) => {
     const data = docSnap.data();
@@ -74,10 +100,12 @@ async function loadOrders() {
     output += `
       <div style="border:1px solid #ddd;padding:12px;margin-top:10px;">
         <strong>${data.orderId}</strong><br>
-        Email: ${data.userEmail}<br>
-        Mobile: ${data.mobile}<br>
-        Total: ₹${data.totalAmount}<br>
-        Status: 
+       Email: ${data.userEmail || "Not Available"}<br>
+Mobile: ${data.mobile || "Not Available"}<br>
+Total: ₹${data.totalAmount || 0}<br>
+
+
+        Status:
         <select onchange="updateStatus('${docSnap.id}', this.value)">
           <option ${data.status === "Pending" ? "selected" : ""}>Pending</option>
           <option ${data.status === "Confirmed" ? "selected" : ""}>Confirmed</option>
@@ -85,44 +113,56 @@ async function loadOrders() {
           <option ${data.status === "Delivered" ? "selected" : ""}>Delivered</option>
           <option ${data.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
         </select>
+
         <br><br>
-        <button onclick="deleteOrder('${docSnap.id}')" 
+
+        <button onclick="deleteOrder('${docSnap.id}')"
         style="background:red;color:white;border:none;padding:6px 10px;border-radius:6px;">
         Delete Order</button>
       </div>
     `;
   });
 
+  output += `
+    <br>
+    <button id="logoutBtn"
+    style="background:black;color:white;padding:8px 12px;border-radius:6px;">
+    Logout</button>
+  `;
+
   container.innerHTML = output;
+
+  document
+    .getElementById("logoutBtn")
+    .addEventListener("click", adminLogout);
 }
 
 
 // ================== UPDATE STATUS ==================
 window.updateStatus = async function (orderDocId, newStatus) {
-
   await updateDoc(doc(db, "orders", orderDocId), {
     status: newStatus
   });
 
-  alert("Status updated");
+  alert("Status Updated");
 };
 
 
 // ================== DELETE ORDER ==================
 window.deleteOrder = async function (orderDocId) {
 
-  const confirmDelete = confirm("Are you sure to delete this order?");
+  const confirmDelete = confirm("Are you sure you want to delete this order?");
   if (!confirmDelete) return;
 
   await deleteDoc(doc(db, "orders", orderDocId));
 
-  alert("Order deleted");
+  alert("Order Deleted");
   loadOrders();
 };
 
 
 // ================== LOGOUT ==================
-document.getElementById("logoutBtn").addEventListener("click", async () => {
+async function adminLogout() {
   await signOut(auth);
   window.location.href = "index.html";
-});
+}
