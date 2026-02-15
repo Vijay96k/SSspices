@@ -3,8 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -41,48 +40,19 @@ const db = getFirestore(app);
 const adminEmail = "ssspicesandmore@gmail.com";
 
 let currentUser = null;
-let authReady = false;
 
 
-// ================== AUTH STATE LISTENER ==================
+// ================== AUTH STATE ==================
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
-  authReady = true;
-
-  const container = document.getElementById("profileContent");
-
-  if (!container) return;
-
-  if (user) {
-    container.innerHTML = `
-      <h3>${user.displayName}</h3>
-      <p>${user.email}</p>
-      <button onclick="viewCart()">View Cart</button>
-      <button onclick="viewOrders()">My Orders</button>
-      <button onclick="logout()">Logout</button>
-    `;
-  } else {
-    container.innerHTML = `
-      <h3>Please Login</h3>
-      <button onclick="login()">Login with Google</button>
-    `;
-  }
 });
-
 
 
 // ================== LOGIN ==================
 window.login = async function () {
-  const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
-};
-
-
-// Handle redirect result (only once)
-getRedirectResult(auth)
-  .then(async (result) => {
-    if (!result) return;
-
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
     const userRef = doc(db, "users", user.uid);
@@ -98,67 +68,61 @@ getRedirectResult(auth)
     }
 
     alert("Login successful");
-  })
-  .catch((error) => {
-    console.error("Login error:", error);
-  });
+    openProfile();
+
+  } catch (error) {
+    console.error(error);
+    alert("Login failed");
+  }
+};
 
 
 // ================== LOGOUT ==================
 window.logout = async function () {
   await signOut(auth);
   alert("Logged out");
-  location.reload();
+  closeProfile();
 };
 
 
 // ================== PROFILE PANEL ==================
-window.viewOrders = async function () {
+window.openProfile = function () {
+  document.getElementById("profilePanel").style.display = "flex";
+  renderProfile();
+};
 
-  if (!currentUser) return;
-
+function renderProfile() {
   const container = document.getElementById("profileContent");
 
-  const q = query(
-    collection(db, "orders"),
-    where("userId", "==", currentUser.uid)
-  );
-
-  const snapshot = await getDocs(q);
-
-  if (snapshot.empty) {
+  if (!currentUser) {
     container.innerHTML = `
-      <h3>No Orders Found</h3>
-      <p>Please order something first.</p>
-      <button onclick="openProfile()">Back</button>
+      <h3>Please Login</h3>
+      <button id="loginBtn">Login with Google</button>
     `;
+    document.getElementById("loginBtn").addEventListener("click", login);
     return;
   }
 
-  let output = "<h3>My Orders</h3>";
+  container.innerHTML = `
+    <h3>${currentUser.displayName}</h3>
+    <p>${currentUser.email}</p>
+    <button id="cartBtn">View Cart</button>
+    <button id="ordersBtn">My Orders</button>
+    <button id="logoutBtn">Logout</button>
+  `;
 
-  snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
+  document.getElementById("cartBtn").addEventListener("click", viewCart);
+  document.getElementById("ordersBtn").addEventListener("click", viewOrders);
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+}
 
-    output += `
-      <div onclick="viewOrderDetails('${docSnap.id}')"
-      style="border:1px solid #ddd;padding:10px;margin-top:8px;cursor:pointer;">
-        <strong>${data.orderId}</strong><br>
-        Status: ${data.status}
-      </div>
-    `;
-  });
-
-  output += `<button onclick="openProfile()">Back</button>`;
-
-  container.innerHTML = output;
+window.closeProfile = function () {
+  document.getElementById("profilePanel").style.display = "none";
 };
-
 
 
 // ================== ADD TO CART ==================
 window.addToCart = async function (name, price) {
-
   if (!currentUser) {
     alert("Please login first.");
     return;
@@ -175,9 +139,7 @@ window.addToCart = async function (name, price) {
 
 
 // ================== VIEW CART ==================
-window.viewCart = async function () {
-
-  if (!currentUser) return;
+async function viewCart() {
 
   const container = document.getElementById("profileContent");
 
@@ -188,8 +150,7 @@ window.viewCart = async function () {
   if (snapshot.empty) {
     container.innerHTML = `
       <h3>Your cart is empty</h3>
-      <p>Add items first.</p>
-      <button onclick="openProfile()">Back</button>
+      <button onclick="renderProfile()">Back</button>
     `;
     return;
   }
@@ -204,38 +165,24 @@ window.viewCart = async function () {
     output += `
       <div style="border:1px solid #ddd;padding:8px;margin-top:8px;">
         ${data.name} - ₹${data.price}
-        <button onclick="removeFromCart('${docSnap.id}')"
-        style="margin-top:5px;background:red;color:white;border:none;padding:5px;border-radius:5px;">
-        Remove</button>
+        <button onclick="removeFromCart('${docSnap.id}')">Remove</button>
       </div>
     `;
   });
 
   output += `<h4>Total: ₹${total}</h4>`;
-
   output += `
-    <input type="tel" id="mobileNumber"
-    placeholder="Enter mobile number"
-    style="width:100%;padding:8px;margin-top:10px;border:1px solid #ccc;border-radius:8px;">
-
-    <button onclick="placeOrder()"
-    style="margin-top:15px;background:green;color:white;border:none;padding:10px;border-radius:8px;width:100%;">
-    Confirm Order</button>
-
-    <button onclick="openProfile()"
-    style="margin-top:10px;background:gray;color:white;border:none;padding:8px;border-radius:8px;width:100%;">
-    Back</button>
+    <input type="tel" id="mobileNumber" placeholder="Enter mobile number">
+    <button onclick="placeOrder()">Confirm Order</button>
+    <button onclick="renderProfile()">Back</button>
   `;
 
   container.innerHTML = output;
-};
+}
 
 
-
-// ================== REMOVE FROM CART ==================
+// ================== REMOVE CART ITEM ==================
 window.removeFromCart = async function (docId) {
-  if (!currentUser) return;
-
   await deleteDoc(doc(db, "users", currentUser.uid, "cart", docId));
   viewCart();
 };
@@ -244,9 +191,7 @@ window.removeFromCart = async function (docId) {
 // ================== PLACE ORDER ==================
 window.placeOrder = async function () {
 
-  if (!currentUser) return;
-
-  const mobile = document.getElementById("mobileNumber")?.value;
+  const mobile = document.getElementById("mobileNumber").value;
 
   if (!mobile || mobile.length < 10) {
     alert("Enter valid mobile number");
@@ -289,14 +234,12 @@ window.placeOrder = async function () {
   }
 
   alert("Order Confirmed! ID: " + orderId);
-  closeProfile();
+  renderProfile();
 };
 
 
 // ================== VIEW ORDERS ==================
-window.viewOrders = async function () {
-
-  if (!currentUser) return;
+async function viewOrders() {
 
   const container = document.getElementById("profileContent");
 
@@ -308,7 +251,10 @@ window.viewOrders = async function () {
   const snapshot = await getDocs(q);
 
   if (snapshot.empty) {
-    container.innerHTML = "<h3>No orders found</h3>";
+    container.innerHTML = `
+      <h3>No Orders Found</h3>
+      <button onclick="renderProfile()">Back</button>
+    `;
     return;
   }
 
@@ -316,52 +262,24 @@ window.viewOrders = async function () {
 
   snapshot.forEach((docSnap) => {
     const data = docSnap.data();
-
     output += `
-      <div onclick="viewOrderDetails('${docSnap.id}')"
-      style="border:1px solid #ddd;padding:10px;margin-top:8px;cursor:pointer;">
+      <div>
         <strong>${data.orderId}</strong><br>
-        ${data.status}
+        Status: ${data.status}
       </div>
     `;
   });
 
+  output += `<button onclick="renderProfile()">Back</button>`;
+
   container.innerHTML = output;
-};
-
-
-// ================== ORDER DETAILS ==================
-function openProfile() {
-  document.getElementById("profilePanel").style.display = "flex";
-
-  if (!currentUser) {
-    document.getElementById("profileContent").innerHTML = `
-      <h3>Please Login</h3>
-      <button id="loginBtn">Login with Google</button>
-    `;
-
-    document.getElementById("loginBtn").addEventListener("click", login);
-    return;
-  }
-
-  document.getElementById("profileContent").innerHTML = `
-    <h3>${currentUser.displayName}</h3>
-    <p>${currentUser.email}</p>
-    <button id="cartBtn">View Cart</button>
-    <button id="ordersBtn">My Orders</button>
-    <button id="logoutBtn">Logout</button>
-  `;
-
-  document.getElementById("cartBtn").addEventListener("click", viewCart);
-  document.getElementById("ordersBtn").addEventListener("click", viewOrders);
-  document.getElementById("logoutBtn").addEventListener("click", logout);
 }
 
+
+// ================== PROFILE BUTTON LISTENER ==================
 document.addEventListener("DOMContentLoaded", () => {
   const profileBtn = document.getElementById("profileBtn");
-
   if (profileBtn) {
     profileBtn.addEventListener("click", openProfile);
   }
 });
-
