@@ -71,26 +71,30 @@ onAuthStateChanged(auth, (user) => {
 
 // ================== PROFILE PANEL ==================
 window.openProfile = function () {
-  document.getElementById("profilePanel").style.display = "flex";
 
-  const user = auth.currentUser;
+  document.getElementById("profilePanel").style.display = "flex";
   const container = document.getElementById("profileContent");
 
-  if (!user) {
-    container.innerHTML = `
-      <h3>Please Login</h3>
-      <button onclick="login()">Login with Google</button>
-    `;
-  } else {
-    container.innerHTML = `
-      <h3>${user.displayName}</h3>
-      <p>${user.email}</p>
-      <button onclick="viewCart()">View Cart</button>
-      <button onclick="viewOrders()">My Orders</button>
-      <button onclick="logout()">Logout</button>
-    `;
-  }
+  onAuthStateChanged(auth, (user) => {
+
+    if (!user) {
+      container.innerHTML = `
+        <h3>Please Login</h3>
+        <button onclick="login()">Login with Google</button>
+      `;
+    } else {
+      container.innerHTML = `
+        <h3>${user.displayName}</h3>
+        <p>${user.email}</p>
+        <button onclick="viewCart()">View Cart</button>
+        <button onclick="viewOrders()">My Orders</button>
+        <button onclick="logout()">Logout</button>
+      `;
+    }
+
+  });
 };
+
 
 window.closeProfile = function () {
   document.getElementById("profilePanel").style.display = "none";
