@@ -41,25 +41,37 @@ const adminEmail = "ssspicesandmore@gmail.com";
 
 
 // ================== AUTH ==================
+
 window.login = async function () {
   const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
-  const user = result.user;
-
-  const userRef = doc(db, "users", user.uid);
-  const snap = await getDoc(userRef);
-
-  if (!snap.exists()) {
-    await setDoc(userRef, {
-      name: user.displayName,
-      email: user.email,
-      role: user.email === adminEmail ? "admin" : "customer",
-      createdAt: new Date()
-    });
-  }
-
-  alert("Login successful");
+  await signInWithRedirect(auth, provider);
 };
+
+getRedirectResult(auth)
+  .then(async (result) => {
+
+    if (!result) return;
+
+    const user = result.user;
+
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
+
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        name: user.displayName,
+        email: user.email,
+        role: user.email === adminEmail ? "admin" : "customer",
+        createdAt: new Date()
+      });
+    }
+
+    alert("Login successful");
+
+  })
+  .catch((error) => {
+    console.error(error);
+  });
 
 window.logout = async function () {
   await signOut(auth);
@@ -67,11 +79,6 @@ window.logout = async function () {
   location.reload();
 };
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("Logged in:", user.email);
-  }
-});
 
 
 // ================== PROFILE PANEL ==================
@@ -289,12 +296,6 @@ window.viewOrderDetails = async function (docId) {
   output += `<button onclick="viewOrders()">Back</button>`;
 
   container.innerHTML = output;
-};
-
-
-window.login = async function () {
-  const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
 };
 
 getRedirectResult(auth)
