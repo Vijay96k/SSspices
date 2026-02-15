@@ -2,13 +2,26 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Admin panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<script type="module" src="admin.js"></script>
 
-    </body>
-    </html>
+<div class="mobile-wrapper">
+
+    <div class="profile-card">
+        <h2>Admin Dashboard</h2>
+        <button id="logoutBtn" class="btn location">Logout</button>
+    </div>
+
+    <section>
+        <h2>All Orders</h2>
+        <div id="ordersContainer"></div>
+    </section>
+
+</div>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>
