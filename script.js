@@ -331,21 +331,23 @@ window.viewOrders = async function () {
 
 
 // ================== ORDER DETAILS ==================
-window.viewOrderDetails = async function (docId) {
+window.openProfile = function () {
+  document.getElementById("profilePanel").style.display = "flex";
 
-  const container = document.getElementById("profileContent");
-  const docSnap = await getDoc(doc(db, "orders", docId));
-  const data = docSnap.data();
+  if (!currentUser) {
+    document.getElementById("profileContent").innerHTML = `
+      <h3>Please Login</h3>
+      <button onclick="login()">Login with Google</button>
+    `;
+    return;
+  }
 
-  let output = `<h3>${data.orderId}</h3>`;
-
-  data.items.forEach(item => {
-    output += `<p>${item.name} - ₹${item.price}</p>`;
-  });
-
-  output += `<h4>Total: ₹${data.totalAmount}</h4>`;
-  output += `<p>Status: ${data.status}</p>`;
-  output += `<button onclick="viewOrders()">Back</button>`;
-
-  container.innerHTML = output;
+  document.getElementById("profileContent").innerHTML = `
+    <h3>${currentUser.displayName}</h3>
+    <p>${currentUser.email}</p>
+    <button onclick="viewCart()">View Cart</button>
+    <button onclick="viewOrders()">My Orders</button>
+    <button onclick="logout()">Logout</button>
+  `;
 };
+
