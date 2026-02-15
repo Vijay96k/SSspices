@@ -23,10 +23,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyDXQB93127WDsAuWaFL8XFRycAXftKED0w",
   authDomain: "ssspices-b4ea4.firebaseapp.com",
   projectId: "ssspices-b4ea4",
-  storageBucket: "ssspices-b4ea4.firebasestorage.app",
+  storageBucket: "ssspices-b4ea4.appspot.com",
   messagingSenderId: "705922395831",
-  appId: "1:705922395831:web:6c1a618729c7ff4df9e732",
-  measurementId: "G-HLRTZ7XVQS"
+  appId: "1:705922395831:web:6c1a618729c7ff4df9e732"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -43,34 +42,73 @@ const allowedAdmins = [
 let currentAdmin = null;
 
 
-// ================== AUTH STATE ==================
-onAuthStateChanged(auth, async (user) => {
+// ================== DOM READY ==================
+document.addEventListener("DOMContentLoaded", () => {
 
   const container = document.getElementById("adminContent");
 
-  if (!user) {
+  // Hide buttons until verified
+  disableDashboardButtons(true);
+
+  onAuthStateChanged(auth, async (user) => {
+
+    if (!container) return;
+
+    if (!user) {
+      container.innerHTML = `
+        <h3>Admin Login Required</h3>
+        <button id="adminLoginBtn" class="btn location">
+          Login with Google
+        </button>
+      `;
+
+      document
+        .getElementById("adminLoginBtn")
+        ?.addEventListener("click", adminLogin);
+
+      disableDashboardButtons(true);
+      return;
+    }
+
+    if (!allowedAdmins.includes(user.email)) {
+      alert("Access Denied");
+      await signOut(auth);
+      window.location.href = "index.html";
+      return;
+    }
+
+    currentAdmin = user;
+
     container.innerHTML = `
-      <h3>Admin Login Required</h3>
-      <button id="adminLoginBtn" class="btn location">Login with Google</button>
+      <h3>Welcome ${user.email}</h3>
+      <p>Select an option above</p>
     `;
 
-    document
-      .getElementById("adminLoginBtn")
-      .addEventListener("click", adminLogin);
+    disableDashboardButtons(false);
+  });
 
-    return;
-  }
 
-  if (!user.emailVerified || !allowedAdmins.includes(user.email)) {
-    alert("Access Denied");
-    await signOut(auth);
-    window.location.href = "index.html";
-    return;
-  }
+  // Button Events
+  document.getElementById("usersBtn")
+    ?.addEventListener("click", loadUsers);
 
-  currentAdmin = user;
-  container.innerHTML = "<h3>Welcome Admin</h3>";
+  document.getElementById("ordersBtn")
+    ?.addEventListener("click", loadOrders);
+
+  document.getElementById("salesBtn")
+    ?.addEventListener("click", loadSales);
+
+  document.getElementById("logoutBtn")
+    ?.addEventListener("click", logoutAdmin);
 });
+
+
+// ================== ENABLE / DISABLE BUTTONS ==================
+function disableDashboardButtons(disabled) {
+  document.getElementById("usersBtn")?.toggleAttribute("disabled", disabled);
+  document.getElementById("ordersBtn")?.toggleAttribute("disabled", disabled);
+  document.getElementById("salesBtn")?.toggleAttribute("disabled", disabled);
+}
 
 
 // ================== ADMIN LOGIN ==================
@@ -82,6 +120,8 @@ async function adminLogin() {
 
 // ================== LOAD USERS ==================
 async function loadUsers() {
+
+  if (!currentAdmin) return;
 
   const container = document.getElementById("adminContent");
   container.innerHTML = "Loading users...";
@@ -112,6 +152,8 @@ async function loadUsers() {
 
 // ================== LOAD ORDERS ==================
 async function loadOrders() {
+
+  if (!currentAdmin) return;
 
   const container = document.getElementById("adminContent");
   container.innerHTML = "Loading orders...";
@@ -157,6 +199,8 @@ async function loadOrders() {
 // ================== LOAD SALES ==================
 async function loadSales() {
 
+  if (!currentAdmin) return;
+
   const container = document.getElementById("adminContent");
   container.innerHTML = "Calculating sales...";
 
@@ -178,10 +222,7 @@ async function loadSales() {
     totalRevenue += data.totalAmount || 0;
 
     data.items?.forEach(item => {
-      if (!productMap[item.name]) {
-        productMap[item.name] = 0;
-      }
-      productMap[item.name] += item.price;
+      productMap[item.name] = (productMap[item.name] || 0) + item.price;
     });
   });
 
@@ -227,21 +268,3 @@ async function logoutAdmin() {
   await signOut(auth);
   window.location.href = "index.html";
 }
-
-
-// ================= BUTTON EVENTS =================
-document.addEventListener("DOMContentLoaded", () => {
-
-  document.getElementById("usersBtn")
-    ?.addEventListener("click", loadUsers);
-
-  document.getElementById("ordersBtn")
-    ?.addEventListener("click", loadOrders);
-
-  document.getElementById("salesBtn")
-    ?.addEventListener("click", loadSales);
-
-  document.getElementById("logoutBtn")
-    ?.addEventListener("click", logoutAdmin);
-
-});
