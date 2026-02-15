@@ -3,9 +3,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
@@ -17,14 +18,10 @@ import {
   addDoc,
   getDocs,
   query,
-  where
+  where,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-import { signInWithRedirect, getRedirectResult } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-import { deleteDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ================== FIREBASE INIT ==================
 const firebaseConfig = {
@@ -40,8 +37,7 @@ const db = getFirestore(app);
 const adminEmail = "ssspicesandmore@gmail.com";
 
 
-// ================== AUTH ==================
-
+// ================== LOGIN ==================
 window.login = async function () {
   const provider = new GoogleAuthProvider();
   await signInWithRedirect(auth, provider);
@@ -49,7 +45,6 @@ window.login = async function () {
 
 getRedirectResult(auth)
   .then(async (result) => {
-
     if (!result) return;
 
     const user = result.user;
@@ -67,10 +62,9 @@ getRedirectResult(auth)
     }
 
     alert("Login successful");
-
   })
   .catch((error) => {
-    console.error(error);
+    console.error("Login error:", error);
   });
 
 window.logout = async function () {
@@ -80,42 +74,36 @@ window.logout = async function () {
 };
 
 
-
 // ================== PROFILE PANEL ==================
 window.openProfile = function () {
 
   document.getElementById("profilePanel").style.display = "flex";
   const container = document.getElementById("profileContent");
 
-  onAuthStateChanged(auth, (user) => {
+  const user = auth.currentUser;
 
-    if (!user) {
-      container.innerHTML = `
-        <h3>Please Login</h3>
-        <button onclick="login()">Login with Google</button>
-      `;
-    } else {
-      container.innerHTML = `
-        <h3>${user.displayName}</h3>
-        <p>${user.email}</p>
-        <button onclick="viewCart()">View Cart</button>
-        <button onclick="viewOrders()">My Orders</button>
-        <button onclick="logout()">Logout</button>
-      `;
-    }
-
-  });
+  if (!user) {
+    container.innerHTML = `
+      <h3>Please Login</h3>
+      <button onclick="login()">Login with Google</button>
+    `;
+  } else {
+    container.innerHTML = `
+      <h3>${user.displayName}</h3>
+      <p>${user.email}</p>
+      <button onclick="viewCart()">View Cart</button>
+      <button onclick="viewOrders()">My Orders</button>
+      <button onclick="logout()">Logout</button>
+    `;
+  }
 };
-
 
 window.closeProfile = function () {
   document.getElementById("profilePanel").style.display = "none";
 };
 
 
-// ================== CART SYSTEM ==================
-let cart = [];
-
+// ================== ADD TO CART (Firestore) ==================
 window.addToCart = async function (name, price) {
 
   const user = auth.currentUser;
@@ -135,15 +123,7 @@ window.addToCart = async function (name, price) {
 };
 
 
-window.removeFromCart = async function (docId) {
-
-  const user = auth.currentUser;
-
-  await deleteDoc(doc(db, "users", user.uid, "cart", docId));
-
-  viewCart();
-};
-
+// ================== VIEW CART ==================
 window.viewCart = async function () {
 
   const user = auth.currentUser;
@@ -191,10 +171,21 @@ window.viewCart = async function () {
 };
 
 
+// ================== REMOVE FROM CART ==================
+window.removeFromCart = async function (docId) {
+
+  const user = auth.currentUser;
+
+  await deleteDoc(doc(db, "users", user.uid, "cart", docId));
+
+  viewCart();
+};
+
 
 // ================== PLACE ORDER ==================
 window.placeOrder = async function () {
 
+  const user = auth.currentUser;
   const mobile = document.getElementById("mobileNumber")?.value;
 
   if (!mobile || mobile.length < 10) {
@@ -202,38 +193,44 @@ window.placeOrder = async function () {
     return;
   }
 
-  if (cart.length === 0) {
+  const cartSnapshot = await getDocs(
+    collection(db, "users", user.uid, "cart")
+  );
+
+  if (cartSnapshot.empty) {
     alert("Cart empty");
     return;
   }
 
-  const user = auth.currentUser;
+  let items = [];
+  let total = 0;
+
+  cartSnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    items.push(data);
+    total += data.price;
+  });
+
   const orderId = "ORD-" + Date.now();
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
 
   await addDoc(collection(db, "orders"), {
     orderId,
     userId: user.uid,
     userEmail: user.email,
     mobile,
-    items: cart,
+    items,
     totalAmount: total,
     status: "Pending",
     createdAt: new Date()
   });
 
-  cart = [];
+  // Clear cart
+  cartSnapshot.forEach(async (docSnap) => {
+    await deleteDoc(doc(db, "users", user.uid, "cart", docSnap.id));
+  });
+
   alert("Order Confirmed! ID: " + orderId);
   closeProfile();
-
-  const cartSnapshot = await getDocs(
-  collection(db, "users", user.uid, "cart")
-);
-
-cartSnapshot.forEach(async (docSnap) => {
-  await deleteDoc(doc(db, "users", user.uid, "cart", docSnap.id));
-});
-
 };
 
 
@@ -297,14 +294,3 @@ window.viewOrderDetails = async function (docId) {
 
   container.innerHTML = output;
 };
-
-getRedirectResult(auth)
-  .then((result) => {
-    if (result) {
-      const user = result.user;
-      alert("Login successful: " + user.email);
-    }
-  })
-  .catch((error) => {
-    console.error(error);
-  });
