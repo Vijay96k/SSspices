@@ -22,14 +22,16 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-console.log("SCRIPT LOADED");
-
 
 // ================== FIREBASE INIT ==================
 const firebaseConfig = {
   apiKey: "AIzaSyDXQB93127WDsAuWaFL8XFRycAXftKED0w",
   authDomain: "ssspices-b4ea4.firebaseapp.com",
-  projectId: "ssspices-b4ea4"
+  projectId: "ssspices-b4ea4",
+  storageBucket: "ssspices-b4ea4.firebasestorage.app",
+  messagingSenderId: "705922395831",
+  appId: "1:705922395831:web:6c1a618729c7ff4df9e732",
+  measurementId: "G-HLRTZ7XVQS"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -38,6 +40,22 @@ const db = getFirestore(app);
 
 const adminEmail = "ssspicesandmore@gmail.com";
 
+let currentUser = null;
+let authReady = false;
+
+
+// ================== AUTH STATE LISTENER ==================
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  authReady = true;
+
+  if (user) {
+    console.log("Logged in:", user.email);
+  } else {
+    console.log("Not logged in");
+  }
+});
+
 
 // ================== LOGIN ==================
 window.login = async function () {
@@ -45,6 +63,8 @@ window.login = async function () {
   await signInWithRedirect(auth, provider);
 };
 
+
+// Handle redirect result (only once)
 getRedirectResult(auth)
   .then(async (result) => {
     if (!result) return;
@@ -69,6 +89,8 @@ getRedirectResult(auth)
     console.error("Login error:", error);
   });
 
+
+// ================== LOGOUT ==================
 window.logout = async function () {
   await signOut(auth);
   alert("Logged out");
@@ -82,22 +104,26 @@ window.openProfile = function () {
   document.getElementById("profilePanel").style.display = "flex";
   const container = document.getElementById("profileContent");
 
-  const user = auth.currentUser;
+  if (!authReady) {
+    container.innerHTML = "<p>Loading...</p>";
+    return;
+  }
 
-  if (!user) {
+  if (!currentUser) {
     container.innerHTML = `
       <h3>Please Login</h3>
       <button onclick="login()">Login with Google</button>
     `;
-  } else {
-    container.innerHTML = `
-      <h3>${user.displayName}</h3>
-      <p>${user.email}</p>
-      <button onclick="viewCart()">View Cart</button>
-      <button onclick="viewOrders()">My Orders</button>
-      <button onclick="logout()">Logout</button>
-    `;
+    return;
   }
+
+  container.innerHTML = `
+    <h3>${currentUser.displayName}</h3>
+    <p>${currentUser.email}</p>
+    <button onclick="viewCart()">View Cart</button>
+    <button onclick="viewOrders()">My Orders</button>
+    <button onclick="logout()">Logout</button>
+  `;
 };
 
 window.closeProfile = function () {
@@ -105,17 +131,15 @@ window.closeProfile = function () {
 };
 
 
-// ================== ADD TO CART (Firestore) ==================
+// ================== ADD TO CART ==================
 window.addToCart = async function (name, price) {
 
-  const user = auth.currentUser;
-
-  if (!user) {
+  if (!currentUser) {
     alert("Please login first.");
     return;
   }
 
-  await addDoc(collection(db, "users", user.uid, "cart"), {
+  await addDoc(collection(db, "users", currentUser.uid, "cart"), {
     name,
     price,
     createdAt: new Date()
@@ -128,11 +152,12 @@ window.addToCart = async function (name, price) {
 // ================== VIEW CART ==================
 window.viewCart = async function () {
 
-  const user = auth.currentUser;
+  if (!currentUser) return;
+
   const container = document.getElementById("profileContent");
 
   const snapshot = await getDocs(
-    collection(db, "users", user.uid, "cart")
+    collection(db, "users", currentUser.uid, "cart")
   );
 
   if (snapshot.empty) {
@@ -175,11 +200,9 @@ window.viewCart = async function () {
 
 // ================== REMOVE FROM CART ==================
 window.removeFromCart = async function (docId) {
+  if (!currentUser) return;
 
-  const user = auth.currentUser;
-
-  await deleteDoc(doc(db, "users", user.uid, "cart", docId));
-
+  await deleteDoc(doc(db, "users", currentUser.uid, "cart", docId));
   viewCart();
 };
 
@@ -187,7 +210,8 @@ window.removeFromCart = async function (docId) {
 // ================== PLACE ORDER ==================
 window.placeOrder = async function () {
 
-  const user = auth.currentUser;
+  if (!currentUser) return;
+
   const mobile = document.getElementById("mobileNumber")?.value;
 
   if (!mobile || mobile.length < 10) {
@@ -196,7 +220,7 @@ window.placeOrder = async function () {
   }
 
   const cartSnapshot = await getDocs(
-    collection(db, "users", user.uid, "cart")
+    collection(db, "users", currentUser.uid, "cart")
   );
 
   if (cartSnapshot.empty) {
@@ -217,8 +241,8 @@ window.placeOrder = async function () {
 
   await addDoc(collection(db, "orders"), {
     orderId,
-    userId: user.uid,
-    userEmail: user.email,
+    userId: currentUser.uid,
+    userEmail: currentUser.email,
     mobile,
     items,
     totalAmount: total,
@@ -226,10 +250,9 @@ window.placeOrder = async function () {
     createdAt: new Date()
   });
 
-  // Clear cart
-  cartSnapshot.forEach(async (docSnap) => {
-    await deleteDoc(doc(db, "users", user.uid, "cart", docSnap.id));
-  });
+  for (const docSnap of cartSnapshot.docs) {
+    await deleteDoc(doc(db, "users", currentUser.uid, "cart", docSnap.id));
+  }
 
   alert("Order Confirmed! ID: " + orderId);
   closeProfile();
@@ -239,36 +262,32 @@ window.placeOrder = async function () {
 // ================== VIEW ORDERS ==================
 window.viewOrders = async function () {
 
-  const user = auth.currentUser;
+  if (!currentUser) return;
+
   const container = document.getElementById("profileContent");
 
   const q = query(
     collection(db, "orders"),
-    where("userId", "==", user.uid)
+    where("userId", "==", currentUser.uid)
   );
 
   const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    container.innerHTML = "<h3>No orders found</h3>";
+    return;
+  }
 
   let output = "<h3>My Orders</h3>";
 
   snapshot.forEach((docSnap) => {
     const data = docSnap.data();
 
-    let badgeColor = {
-      Pending: "orange",
-      Confirmed: "blue",
-      Shipped: "purple",
-      Delivered: "green",
-      Cancelled: "red"
-    }[data.status] || "gray";
-
     output += `
       <div onclick="viewOrderDetails('${docSnap.id}')"
       style="border:1px solid #ddd;padding:10px;margin-top:8px;cursor:pointer;">
         <strong>${data.orderId}</strong><br>
-        <span style="color:white;background:${badgeColor};
-        padding:4px 8px;border-radius:12px;font-size:12px;">
-        ${data.status}</span>
+        ${data.status}
       </div>
     `;
   });
