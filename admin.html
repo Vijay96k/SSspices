@@ -2,22 +2,34 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Admin Dashboard</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="mobile-wrapper">
 
+    <div class="header"></div>
+
     <div class="profile-card">
-        <h2>Admin Dashboard</h2>
-        <button id="logoutBtn" class="btn location">Logout</button>
+        <h1>Admin Dashboard</h1>
+        <p class="category">Manage Website</p>
+
+        <div class="quick-buttons">
+            <button class="btn location" id="usersBtn">User List</button>
+            <button class="btn location" id="ordersBtn">Total Orders</button>
+            <button class="btn location" id="salesBtn">Total Sales</button>
+            <button class="btn call" id="logoutBtn">Logout</button>
+        </div>
     </div>
 
     <section>
-        <h2>All Orders</h2>
-        <div id="ordersContainer"></div>
+        <h2>Admin Panel</h2>
+        <div class="product-grid" id="adminContent">
+            <!-- Dynamic content will load here -->
+        </div>
     </section>
 
 </div>

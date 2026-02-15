@@ -166,3 +166,108 @@ async function adminLogout() {
   await signOut(auth);
   window.location.href = "index.html";
 }
+
+window.showUsers = async function () {
+
+  const container = document.getElementById("adminContent");
+  container.innerHTML = "Loading users...";
+
+  const snapshot = await getDocs(collection(db, "users"));
+
+  if (snapshot.empty) {
+    container.innerHTML = "<p>No users found</p>";
+    return;
+  }
+
+  let output = "<h3>All Users</h3>";
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    output += `
+      <div style="border:1px solid #ddd;padding:10px;margin-top:8px;">
+        Email: ${data.email}<br>
+        Role: ${data.role || "customer"}
+      </div>
+    `;
+  });
+
+  container.innerHTML = output;
+};
+
+window.showOrders = async function () {
+
+  const container = document.getElementById("adminContent");
+  container.innerHTML = "Loading orders...";
+
+  const snapshot = await getDocs(collection(db, "orders"));
+
+  if (snapshot.empty) {
+    container.innerHTML = "<p>No orders found</p>";
+    return;
+  }
+
+  let output = "<h3>All Orders</h3>";
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    output += `
+      <div style="border:1px solid #ddd;padding:12px;margin-top:10px;">
+        <strong>${data.orderId}</strong><br>
+        Email: ${data.userEmail || "N/A"}<br>
+        Mobile: ${data.mobile || "N/A"}<br>
+        Total: ₹${data.totalAmount || 0}<br>
+        Status: ${data.status}
+      </div>
+    `;
+  });
+
+  container.innerHTML = output;
+};
+
+window.showSales = async function () {
+
+  const container = document.getElementById("adminContent");
+  container.innerHTML = "Calculating sales...";
+
+  const snapshot = await getDocs(collection(db, "orders"));
+
+  if (snapshot.empty) {
+    container.innerHTML = "<p>No sales data</p>";
+    return;
+  }
+
+  let totalRevenue = 0;
+  let productMap = {};
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    if (data.status === "Cancelled") return;
+
+    totalRevenue += data.totalAmount || 0;
+
+    data.items?.forEach(item => {
+      if (!productMap[item.name]) {
+        productMap[item.name] = 0;
+      }
+      productMap[item.name] += item.price;
+    });
+  });
+
+  let output = `
+    <h3>Total Revenue: ₹${totalRevenue}</h3>
+    <h4>Product Wise Sales</h4>
+  `;
+
+  for (let product in productMap) {
+    output += `
+      <div style="border:1px solid #ddd;padding:8px;margin-top:6px;">
+        ${product} → ₹${productMap[product]}
+      </div>
+    `;
+  }
+
+  container.innerHTML = output;
+};
