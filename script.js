@@ -20,6 +20,11 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+import { signInWithRedirect, getRedirectResult } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import { deleteDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ================== FIREBASE INIT ==================
 const firebaseConfig = {
@@ -104,7 +109,8 @@ window.closeProfile = function () {
 // ================== CART SYSTEM ==================
 let cart = [];
 
-window.addToCart = function (name, price) {
+window.addToCart = async function (name, price) {
+
   const user = auth.currentUser;
 
   if (!user) {
@@ -112,40 +118,57 @@ window.addToCart = function (name, price) {
     return;
   }
 
-  cart.push({ name, price });
-  alert(name + " added to cart");
+  await addDoc(collection(db, "users", user.uid, "cart"), {
+    name,
+    price,
+    createdAt: new Date()
+  });
+
+  alert("Added to cart");
 };
 
-window.removeFromCart = function (index) {
-  cart.splice(index, 1);
+
+window.removeFromCart = async function (docId) {
+
+  const user = auth.currentUser;
+
+  await deleteDoc(doc(db, "users", user.uid, "cart", docId));
+
   viewCart();
 };
 
-window.viewCart = function () {
+window.viewCart = async function () {
 
+  const user = auth.currentUser;
   const container = document.getElementById("profileContent");
 
-  if (cart.length === 0) {
+  const snapshot = await getDocs(
+    collection(db, "users", user.uid, "cart")
+  );
+
+  if (snapshot.empty) {
     container.innerHTML = "<h3>Your cart is empty</h3>";
     return;
   }
 
   let output = "<h3>Your Cart</h3>";
+  let total = 0;
 
-  cart.forEach((item, index) => {
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    total += data.price;
+
     output += `
       <div style="border:1px solid #ddd;padding:8px;margin-top:8px;">
-        ${item.name} - ₹${item.price}
-        <button onclick="removeFromCart(${index})"
+        ${data.name} - ₹${data.price}
+        <button onclick="removeFromCart('${docSnap.id}')"
         style="margin-top:5px;background:red;color:white;border:none;padding:5px;border-radius:5px;">
         Remove</button>
       </div>
     `;
   });
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
-
-  output += `<h4 style="margin-top:10px;">Total: ₹${total}</h4>`;
+  output += `<h4>Total: ₹${total}</h4>`;
 
   output += `
     <input type="tel" id="mobileNumber"
@@ -159,6 +182,7 @@ window.viewCart = function () {
 
   container.innerHTML = output;
 };
+
 
 
 // ================== PLACE ORDER ==================
@@ -194,6 +218,15 @@ window.placeOrder = async function () {
   cart = [];
   alert("Order Confirmed! ID: " + orderId);
   closeProfile();
+
+  const cartSnapshot = await getDocs(
+  collection(db, "users", user.uid, "cart")
+);
+
+cartSnapshot.forEach(async (docSnap) => {
+  await deleteDoc(doc(db, "users", user.uid, "cart", docSnap.id));
+});
+
 };
 
 
@@ -257,3 +290,20 @@ window.viewOrderDetails = async function (docId) {
 
   container.innerHTML = output;
 };
+
+
+window.login = async function () {
+  const provider = new GoogleAuthProvider();
+  await signInWithRedirect(auth, provider);
+};
+
+getRedirectResult(auth)
+  .then((result) => {
+    if (result) {
+      const user = result.user;
+      alert("Login successful: " + user.email);
+    }
+  })
+  .catch((error) => {
+    console.error(error);
+  });
