@@ -22,6 +22,8 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+console.log("SCRIPT LOADED");
+
 
 // ================== FIREBASE INIT ==================
 const firebaseConfig = {
